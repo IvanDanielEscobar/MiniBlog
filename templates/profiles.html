@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+
+{% block head_title %}Perfiles{% endblock %}
+
+{% block body %}
+<h1 class="mb-4">Lista de Usuarios Registrados</h1>
+
+<table class="table table-bordered table-striped">
+    <thead class="thead-dark">
+        <tr>
+            <th>#</th>
+            <th>Nombre de Usuario</th>
+            <th>Email</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
