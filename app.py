@@ -1,6 +1,6 @@
 import requests
 
-from flask import Flask, flash, render_template, request, redirect, url_for
+from flask import Flask, flash, render_template, request, redirect, url_for, session
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
@@ -118,12 +118,7 @@ def logout():
     return redirect(url_for('index'))
 
 
-@app.route('/post/<int:post_id>')
-def post_detail(post_id):
-    post = Post.query.get_or404(post_id) #busca un registro id en la bd y retorna 404 si no existe
-    return render_template('post_detail', post=post)
-
-@app.route('/new_post', methods=['GET','POST'])
+@app.route('/new', methods=['GET','POST'])
 @login_required
 def new_post():
     if request.method == 'POST':
@@ -136,15 +131,26 @@ def new_post():
         return redirect(url_for('index'))
     return render_template('new_post.html')
 
-@app.route('/add_comment/<int:post_id>', methods=['POST'])
+
+@app.route('/post/<int:post_id>')
+def post_detail(post_id):
+    post = Post.query.get_or_404(post_id) #busca un registro id en la bd y retorna 404 si no existe
+    return render_template('post_detail.html', post=post)
+
+
+@app.route('/post/<int:post_id>/comment', methods=['POST'])
 @login_required
-def add_comment(post_id):
+def add_comment_on_post(post_id):
+    post = Post.query.get_or_404(post_id)
     content = request.form['content']
-    comment = Comment(content=content, post_id=post_id, author=current_user)
-    db.session.add(comment)
-    db.session.commit()
-    flash("Comentario agregado!", "success")
-    return redirect(url_for('post_detail', post_id=post_id))
+    
+    if content.strip():  # no anda si no hay nada
+        comment = Comment(content=content, author=current_user, post=post)
+        db.session.add(comment)
+        db.session.commit()
+    
+    return redirect(url_for('post_detail', post_id=post.id))
+
 
 if __name__ == '__main__':
     app.run(debug=True)

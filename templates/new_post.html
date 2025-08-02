@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+
+{% block head_title %}Nuevo Post{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <h2>Crear un nuevo post</h2>
+    <form method="POST" action="{{ url_for('new_post') }}">
+        <div class="mb-3">
+            <label for="title" class="form-label">Título</label>
+            <input type="text" class="form-control" id="title" name="title" required>
+        </div>
+        <div class="mb-3">
+            <label for="content" class="form-label">Contenido</label>
+            <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Publicar</button>
+    </form>
+</div>
+{% endblock %}

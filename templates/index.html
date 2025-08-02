@@ -42,8 +42,8 @@
             <div class="cardbody">
                 <h5 class="card-title">{{ post.title }}</h5>
                 <p class="card-text">{{ post.content[:100] }}..</p>
-                <a href="{{ url_for('post_detail', post_id=post_id) }}" class="btn btn-outline-primary">mas</a>
-            </div>
+                <a href="{{ url_for('post_detail', post_id=post.id) }}" class="btn btn-outline-primary">mas</a>
+            </div>0
             <div class="card-footer text-muted">
                 Publicado por {{ post.author.username }}
             </div>
