@@ -30,7 +30,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
-from models import User
+from models import User, Post, Category, Comment
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -43,7 +43,36 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    posts = Post.query.order_by(Post.created_at.desc()).all() #ordena los post del mas nuevo al mas viejo en orden descendente
+    return render_template('index.html', posts=posts)
+
+@app.route('/post/<int:post_id>')
+def post_detail(post_id):
+    post = Post.query.get_or404(post_id) #busca un registro id en la bd y retorna 404 si no existe
+    return render_template('post_detail', post=post)
+
+@app.route('/new_post', methods=['GET','POST'])
+@login_required
+def new_post():
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        post = Post(title=title, content=content, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash("Posteado!!", "success")
+        return redirect(url_for('index'))
+    return render_template('new_post.html')
+
+@app.route('/add_comment/<int:post_id>', methods=['POST'])
+@login_required
+def add_comment(post_id):
+    content = request.form['contet']
+    comment = Comment(content=content, post_id=post_id, author=current_user)
+    db.session.add(comment)
+    db.session.commit()
+    flash("Comentario agregado!","succes")
+    return redirect(url_for('post_detail', post_id=post_id))
 
 @app.route('/add_contact')
 def add_contact():

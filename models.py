@@ -20,13 +20,29 @@ class User(db.Model, UserMixin):
     
     posts = db.relationship('Post', backref='author', lazy=True)
     
-    def __repr__(self):
-        return f"User('{self.username}', '{self.email}')"
+    post = db.relationship('Post', backref="author", lazy=True)
+    comments = db.relationship('Comment', backref='author', lazy=True)
 
-    def __str__(self):
-        return self.username
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.now())
 
-    def get_id(self):
-        return str(self.id)
-    
-    
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    comments = db.relationship('Comment', backref='post', lazy=True)
+    categories = db.relationship('Category', secondary=post_category, back_populates='posts')
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.now())
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+
+    posts = db.relationship('Post', secondary=post_category, back_populates='categories')
