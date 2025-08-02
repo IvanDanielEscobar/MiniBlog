@@ -17,9 +17,10 @@ from werkzeug.security import (
     generate_password_hash
     )
 
+#inicia app flask
 app = Flask(__name__)
 
-
+#clave para sesion y config de mysql
 app.secret_key = "cualquiercosa"
 app.config['SQLALCHEMY_DATABASE_URI'] = (
     "mysql+pymysql://root:@localhost/flask_app"
@@ -34,7 +35,7 @@ from models import User, Post, Category, Comment
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'login' #redirecciona a login si no esta autenticado
 
 
 @login_manager.user_loader
@@ -45,48 +46,6 @@ def load_user(user_id):
 def index():
     posts = Post.query.order_by(Post.created_at.desc()).all() #ordena los post del mas nuevo al mas viejo en orden descendente
     return render_template('index.html', posts=posts)
-
-@app.route('/post/<int:post_id>')
-def post_detail(post_id):
-    post = Post.query.get_or404(post_id) #busca un registro id en la bd y retorna 404 si no existe
-    return render_template('post_detail', post=post)
-
-@app.route('/new_post', methods=['GET','POST'])
-@login_required
-def new_post():
-    if request.method == 'POST':
-        title = request.form['title']
-        content = request.form['content']
-        post = Post(title=title, content=content, author=current_user)
-        db.session.add(post)
-        db.session.commit()
-        flash("Posteado!!", "success")
-        return redirect(url_for('index'))
-    return render_template('new_post.html')
-
-@app.route('/add_comment/<int:post_id>', methods=['POST'])
-@login_required
-def add_comment(post_id):
-    content = request.form['contet']
-    comment = Comment(content=content, post_id=post_id, author=current_user)
-    db.session.add(comment)
-    db.session.commit()
-    flash("Comentario agregado!","succes")
-    return redirect(url_for('post_detail', post_id=post_id))
-
-@app.route('/add_contact')
-def add_contact():
-    return 'add contact'
-
-
-@app.route('/edit')
-def edit_contact():
-    return 'edit contact'
-
-
-@app.route('/delete_contact')
-def delete_contact():
-    return 'delete contact'
 
 @app.route('/profiles')
 @login_required
@@ -106,6 +65,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(pwhash=user.password_hash, password=password):
             login_user(user)
+            session['welcome_message'] = True
             return redirect(url_for('index'))
         else:
             flash('Usuario o contraseña incorrectos', 'error')
@@ -157,6 +117,34 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+
+@app.route('/post/<int:post_id>')
+def post_detail(post_id):
+    post = Post.query.get_or404(post_id) #busca un registro id en la bd y retorna 404 si no existe
+    return render_template('post_detail', post=post)
+
+@app.route('/new_post', methods=['GET','POST'])
+@login_required
+def new_post():
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        post = Post(title=title, content=content, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash("Posteado!!", "success")
+        return redirect(url_for('index'))
+    return render_template('new_post.html')
+
+@app.route('/add_comment/<int:post_id>', methods=['POST'])
+@login_required
+def add_comment(post_id):
+    content = request.form['content']
+    comment = Comment(content=content, post_id=post_id, author=current_user)
+    db.session.add(comment)
+    db.session.commit()
+    flash("Comentario agregado!", "success")
+    return redirect(url_for('post_detail', post_id=post_id))
 
 if __name__ == '__main__':
     app.run(debug=True)

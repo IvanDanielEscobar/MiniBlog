@@ -3,18 +3,54 @@
 {% block head_title %}Inicio{% endblock %}
 
 {% block body %}
+
 <div class="text-center py-5">
     {% if current_user.is_authenticated %}
-    <h1 class="display-4">¡Bienvenido, {{ current_user.username }}!</h1>
-    <p class="lead">Has iniciado sesión correctamente en la Aplicación del Clima.</p>
-    <a href="{{ url_for('profiles') }}" class="btn btn-primary btn-lg mt-3">Ver perfiles</a>
+    {% if session.get('welcome_message') %}
+    <section class="aler alert-succes alert-dismissible fade show" role="alert">
+        <h4 class="aler-heading">
+            Bienvenido, {{ current_user.username }}!
+        </h4>
+        <p>
+            Sesion Activa!
+        </p>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        <a href="{{ url_for('profiles') }}" class="btn btn-primary btn-lg mt-3">Ver perfiles</a>
+    </section>
+    {% set _ = session.pop('welcome_message') %}
     {% else %}
-    <h1 class="display-4">Bienvenido a la Aplicación del Clima</h1>
-    <p class="lead">Por favor inicia sesión o regístrate para acceder a todas las funcionalidades.</p>
+    <h1 class="display-4">Hola, {{ current_user.username }}!</h1>
+    <p class="lead">Gracias por volver!.</p>
+    {% endif %}
+    {% else %}
+    <h1 class="display-4">Bienvenido a MiniBlog</h1>
+    <p>Por favor Inicia Sesion o Registrate para acceder</p>
     <div class="mt-4">
         <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg mr-3">Iniciar Sesión</a>
         <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg">Registrarse</a>
     </div>
     {% endif %}
 </div>
+{% if current_user.is_authenticated %}
+<h2 class="mt-5 mb-4">
+    Publicaciones Recientes
+</h2>
+<section class="row">
+    {% for post in posts %}
+    <section class="col-md-4 mb-3">
+        <article class="card h-100 shadow-sm">
+            <div class="cardbody">
+                <h5 class="card-title">{{ post.title }}</h5>
+                <p class="card-text">{{ post.content[:100] }}..</p>
+                <a href="{{ url_for('post_detail', post_id=post_id) }}" class="btn btn-outline-primary">mas</a>
+            </div>
+            <div class="card-footer text-muted">
+                Publicado por {{ post.author.username }}
+            </div>
+        </article>
+    </section>
+    {% endfor %}
+</section>
+{% endif %}
+
 {% endblock %}
