@@ -151,6 +151,10 @@ def add_comment_on_post(post_id):
     
     return redirect(url_for('post_detail', post_id=post.id))
 
+@app.context_processor
+def inject_categories():
+    categorias = Category.query.order_by(Category.name).all()
+    return dict(categorias=categorias)
 
 if __name__ == '__main__':
     app.run(debug=True)

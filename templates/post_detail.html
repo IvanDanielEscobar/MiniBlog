@@ -9,6 +9,7 @@
             <p class="card-text">{{ post.content }}</p>
             <p class="text-muted">Publicado por {{ post.author.username }} el {{ post.created_at.strftime('%d/%m/%Y') }}
             </p>
+            <p> Categoria: {{ post.Category }}</p>
         </div>
     </div>
 

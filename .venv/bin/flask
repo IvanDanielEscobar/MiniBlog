@@ -1,4 +1,4 @@
-#!/home/ivan/Documentos/flask_app/.venv/bin/python3
+#!/home/joni/Itec/segundo/pp1-python/MiniBlog/.venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
