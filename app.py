@@ -124,8 +124,20 @@ def new_post():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
+
+        #puede ser mas de una
         categorias = request.form.getlist('categories')
 
+        nueva_categoria = request.form.get('new_category')
+        if nueva_categoria and nueva_categoria.strip():#.strip() elimina espacios en blanco al principio y al final en una cadena de texto
+            categoria_new = Category(name=nueva_categoria.strip())
+            db.session.add(categoria_new)
+            db.session.commit()
+            categorias.append(str(categoria_new.id)) 
+            #str convierte el numero en cadena para que la "categorias" es una lista que viene de un form
+            #.append agrega ese nuevo id a la lista de categorias
+
+        #crea el post y asigna las categorias
         post = Post(title=title, content=content, author=current_user)
         post.categories = Category.query.filter(Category.id.in_(categorias)).all()
         
@@ -133,6 +145,7 @@ def new_post():
         db.session.commit()
         flash("Posteado!!", "success")
         return redirect(url_for('index'))
+    
     return render_template('new_post.html')
 
 

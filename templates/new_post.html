@@ -16,13 +16,21 @@
         </div>
         <div class="mt-3">
             <label class="form-label">Categorias</label>
-            <select name="categories" class="form-select mb-3" aria-label="Default select example">
+            <select name="categories" class="form-select" multiple>
                 {% for category in categorias %}
                 <option value="{{ category.id }}">{{ category.name }}</option>
                 {% endfor %}
             </select>
+            <small class="form-text text-muted">Ctrl para seleccionar varias</small>
         </div>
-        <button type="submit" class="btn btn-primary">Publicar</button>
+
+        <div class="mb-3">
+            <label for="new_category" class="form-label">Agregar Categoria</label>
+            <input type="text" class="form-control" id="new_category" name="new_category"
+                placeholder="ej: ciencia ficcion">
+        </div>
+
+        <button type=" submit" class="btn btn-primary mt-4">Publicar</button>
     </form>
 </div>
 {% endblock %}
