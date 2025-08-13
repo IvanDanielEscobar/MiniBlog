@@ -9,7 +9,13 @@
             <p class="card-text">{{ post.content }}</p>
             <p class="text-muted">Publicado por {{ post.author.username }} el {{ post.created_at.strftime('%d/%m/%Y') }}
             </p>
-            <p> Categoria: {{ post.Category }}</p>
+            <p> Categoria:
+                {% for cat in post.categories %}
+                <span class="badge bg-secondary">{{ cat.name }}</span>
+                {% else %}
+                <span class="text-muted">sin categoria</span>
+                {% endfor %}
+            </p>
         </div>
     </div>
 

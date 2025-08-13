@@ -124,7 +124,11 @@ def new_post():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
+        categorias = request.form.getlist('categories')
+
         post = Post(title=title, content=content, author=current_user)
+        post.categories = Category.query.filter(Category.id.in_(categorias)).all()
+        
         db.session.add(post)
         db.session.commit()
         flash("Posteado!!", "success")

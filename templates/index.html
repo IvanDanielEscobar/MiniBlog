@@ -7,7 +7,7 @@
 <div class="text-center py-5">
     {% if current_user.is_authenticated %}
     {% if session.get('welcome_message') %}
-    <section class="alert alert-succes alert-dismissible fade show text-center mt-4" role="alert">
+    <section class="alert alert-success alert-dismissible fade show text-center mt-4" role="alert">
         <h4 class="alert-heading">
             Bienvenido, {{ current_user.username }}!
         </h4>
