@@ -3,12 +3,20 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
-# relacion Post-Category
-post_category = db.Table(
-    'post_category',
+# relacion Post-Generos
+post_genre = db.Table(
+    'post_genre',
     db.Column('post_id', db.Integer, db.ForeignKey('post.id'), primary_key=True),
-    db.Column('category_id', db.Integer, db.ForeignKey('category.id'), primary_key=True)
+    db.Column('genre_id', db.Integer, db.ForeignKey('genres.id'), primary_key=True)
 )
+
+# relacion Movies-Generos
+movie_genre = db.Table(
+    'movie_genre',
+    db.Column('movie_id', db.Integer, db.ForeignKey('movies.id'), primary_key=True),
+    db.Column('genre_id', db.Integer, db.ForeignKey('genres.id'), primary_key=True)
+)
+
 
 
 class User(db.Model):
@@ -34,6 +42,7 @@ class Post(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     #comentarios del post
     comments = db.relationship('Comment', backref='post', lazy=True)
+    genres = db.relationship("Genre", secondary=post_genre, backref="posts")
     
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)

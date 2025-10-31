@@ -1,13 +1,6 @@
-__pycache__/
-*.pyc
-*.pyd
-*.pyo
-*.pyl
-env/
+venv/
 .venv/
-.Python
-.vscode/
-*.db
-*.sqlite
-/migrations/versions/*.py
 
+
+py
+.py

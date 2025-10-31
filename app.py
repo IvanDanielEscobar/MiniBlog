@@ -1,11 +1,14 @@
 from flask import Flask, request
 from flask_jwt_extended import JWTManager
-from models import db, Movie, Review
-
+from datetime import timedelta
 
 
 from schemas import ReviewSchema
+
+from models import db, User, Post, Comment, Movie, Review, Genre
+
 from views import UserAPI, UserDetailAPI, UserRegisterAPI, AuthLoginAPI
+
 
 from flask_cors import CORS
 
@@ -64,10 +67,22 @@ def movies():
         {
             "title": movie.title,
             "year": movie.year,
-            #"genres": movie.genres
+            "genres": [genre.name for genre in movie.genres]
         } for movie in movies
     ]
 
+@app.route('/posts')
+def posts():
+    all_posts = Post.query.all()
+    return[
+        {
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "created_at": post.created_at,
+            "genres": [genre.name for genre in post.genres]
+        } for post in all_posts
+    ]
 
 if __name__ == '__main__':
     app.run(debug=True)

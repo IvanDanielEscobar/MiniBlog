@@ -35,3 +35,14 @@ class LoginSchema(Schema):
     email = fields.Email(required=True)
     password = fields.Str(required=True, load_only=True)
     
+
+class GenreSchema(Schema):
+    id = fields.Int(dump_only=True)
+    name = fields.Str()
+
+class PostSchema(Schema):
+    id = fields.Int(dump_only=True)
+    title = fields.Str(required=True)
+    content = fields.Str(required=True)
+    created_at = fields.DateTime()
+    genres = fields.List(fields.Nested(GenreSchema))
