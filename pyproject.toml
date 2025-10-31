@@ -1,0 +1,26 @@
+[project]
+name = "flask-app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "blinker",
+    "click",
+    "Flask",
+    "Flask-SQLAlchemy",
+    "greenlet",
+    "itsdangerous",
+    "Jinja2",
+    "MarkupSafe",
+    "marshmallow",
+    "marshmallow-sqlalchemy",
+    "PyMySQL",
+    "SQLAlchemy",
+    "typing_extensions",
+    "Werkzeug",
+    "bcrypt<4.0",
+    "Flask-JWT-Extended",
+    "passlib[bcrypt]==1.7.4",
+    "flask-cors>=6.0.1",
+    ]
