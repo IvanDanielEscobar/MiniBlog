@@ -39,7 +39,7 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.now())
 
     #autor del post
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     #comentarios del post
     comments = db.relationship('Comment', backref='post', lazy=True)
     genres = db.relationship("Genre", secondary=post_genre, backref="posts")
@@ -49,7 +49,7 @@ class Comment(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.now())
     #usuario que comenta 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     #donde comenta
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
 
@@ -75,20 +75,6 @@ class Genre(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(
         db.String(50), nullable=False
-    )
-
-
-class MovieGenre(db.Model):
-    __tablename__ = "movie_genre"
-    movie_id = db.Column(
-        db.Integer,
-        db.ForeignKey("movies.id"),
-        primary_key=True,
-    )
-    genre_id = db.Column(
-        db.Integer,
-        db.ForeignKey("genres.id"),
-        primary_key=True,
     )
 
 

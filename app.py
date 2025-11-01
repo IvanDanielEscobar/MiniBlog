@@ -7,7 +7,7 @@ from schemas import ReviewSchema
 
 from models import db, User, Post, Comment, Movie, Review, Genre
 
-from views import UserAPI, UserDetailAPI, UserRegisterAPI, AuthLoginAPI
+from views import UserAPI, UserDetailAPI, UserRegisterAPI, AuthLoginAPI, PostAPI, PostDetailAPI
 
 
 from flask_cors import CORS
@@ -16,12 +16,12 @@ from flask_cors import CORS
 #inicia app flask
 app = Flask(__name__)
 
-#clave para sesion y config de mysql
-app.secret_key = "QueLeVayaBienLuegoDeDejarItec!UnGusto!"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://BD2021:BD2021itec@143.198.156.171:3306/movies_pp1'
 
-app.config['SQLALCHEMY_TRACK_NOTIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = 'cualquier-cosa'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://BD2021:BD2021itec@143.198.156.171:3306/movies_pp1'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = 'QueLeVayaBienProfe!UnGusto!'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)
 
 jwt = JWTManager(app)
 db.init_app(app)
@@ -46,9 +46,19 @@ app.add_url_rule(
 )
 app.add_url_rule(
     '/login',
-    view_func=AuthLoginAPI.as_view('user_user_api'),
+    view_func=AuthLoginAPI.as_view('auth_login_api'),
     methods=['POST']
 )
+app.add_url_rule(
+    '/posts',
+    view_func=PostAPI.as_view('posts_api'),
+    methods=['GET','POST']
+    )
+app.add_url_rule(
+    '/posts/<int:id>',
+    view_func=PostDetailAPI.as_view('post_detail_api'),
+    methods=['PUT','DELETE']
+    )
 
 @app.route('/reviews')
 def reviews():
@@ -69,19 +79,6 @@ def movies():
             "year": movie.year,
             "genres": [genre.name for genre in movie.genres]
         } for movie in movies
-    ]
-
-@app.route('/posts')
-def posts():
-    all_posts = Post.query.all()
-    return[
-        {
-            "id": post.id,
-            "title": post.title,
-            "content": post.content,
-            "created_at": post.created_at,
-            "genres": [genre.name for genre in post.genres]
-        } for post in all_posts
     ]
 
 if __name__ == '__main__':
