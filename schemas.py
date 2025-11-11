@@ -14,7 +14,9 @@ class UserSchema(Schema):
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True)
     email = fields.Email(required=True)
-    
+    role = fields.Str(dump_only=True)
+    is_active = fields.Bool(dump_only=True)
+    created_at = fields.DateTime(dump_only=True)
     reviews = fields.List(
         fields.Nested(
             "ReviewSchema", 
@@ -38,9 +40,12 @@ class PostSchema(Schema):
     title = fields.Str(required=True)
     content = fields.Str(required=True)
     created_at = fields.DateTime(dump_only=True)
+    updated_at = fields.DateTime(dump_only=True)
+    is_published = fields.Bool(dump_only=True)
     author = fields.Nested(lambda: UserSchema(only=("id", "name", "email")))
-    comments = fields.List(fields.Nested(lambda: CommentSchema(only=("post",))))
+    comments = fields.List(fields.Nested(lambda: CommentSchema(only=("id","content","author","created_at"))))
     genres = fields.List(fields.Nested(lambda: GenreSchema(only=("id", "name"))))
+
 
 
 class CommentSchema(Schema):
