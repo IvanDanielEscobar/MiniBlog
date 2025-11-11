@@ -24,9 +24,17 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     email = db.Column(db.String(100), nullable=False, unique=True)
-    password_hash = db.Column(db.String(256), nullable=False)
-    is_active = db.Column(db.Boolean, default=True) 
+    
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        server_default=db.text("1")
+        )
+    
     role = db.Column(db.String(50), default='user')
+    
+    credential = db.relationship("UserCredentials", back_populates="user", uselist=False)
+    
     # un usuario tien muchos posts
     posts = db.relationship('Post', backref='author', lazy=True)
     # relacion con el comentario que escribe un user
@@ -38,6 +46,12 @@ class Post(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.now())
 
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        server_default=db.text("1")
+        )
+    
     #autor del post
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     #comentarios del post
@@ -106,7 +120,10 @@ class UserCredentials(db.Model):
         nullable=False
     )
     password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(50), nullable=False, default="user")
+    role = db.Column(db.String(50), default="user")
+    
     user = db.relationship(
-        "User", backref=db.backref("credential", uselist=False)
-    )
+        "User",
+        back_populates="credential"
+        )
+    

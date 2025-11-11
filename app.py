@@ -1,11 +1,18 @@
 from flask import Flask, request
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import (
+    JWTManager,
+    jwt_required,
+    get_jwt_identity,
+    get_jwt,
+    create_access_token,
+    create_refresh_token
+)
 from datetime import timedelta
 
 
 from schemas import ReviewSchema
 
-from models import db, User, Post, Comment, Movie, Review, Genre
+from models import db, Movie, Review
 
 from views import UserAPI, UserDetailAPI, UserRegisterAPI, AuthLoginAPI, PostAPI, PostDetailAPI
 
@@ -19,14 +26,20 @@ app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://BD2021:BD2021itec@143.198.156.171:3306/movies_pp1'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = 'QueLeVayaBienProfe!UnGusto!'
+app.config['JWT_SECRET_KEY'] = '1234'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)
 
 jwt = JWTManager(app)
 db.init_app(app)
 
+with app.app_context():
+    db.create_all()
+
+
 CORS(app, origins=["http://localhost:5173"])
+
+
 
 
 app.add_url_rule(
@@ -59,6 +72,15 @@ app.add_url_rule(
     view_func=PostDetailAPI.as_view('post_detail_api'),
     methods=['PUT','DELETE']
     )
+
+@app.route("/debug-token")
+@jwt_required()
+def debug_token():
+    return {
+        "identity": get_jwt_identity(),
+        "claims": get_jwt()
+    }
+
 
 @app.route('/reviews')
 def reviews():

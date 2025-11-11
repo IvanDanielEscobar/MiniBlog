@@ -4,19 +4,21 @@ from flask.views import MethodView
 from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity,
+    get_jwt,
     create_access_token,
-    create_refresh_token,
+    create_refresh_token
 )
 from passlib.hash import bcrypt
-from utils.decorators import role_required
+from decorators import role_required
 
-from app import db
-from models import User, UserCredentials, Post
+from models import User, UserCredentials, Post, db
 from schemas import UserSchema, RegisterSchema, LoginSchema
 
 
+# ------- USERS
 class UserAPI(MethodView):
     @jwt_required()
+    @role_required("admin")
     def get(self):
         users = User.query.all()
         return UserSchema(many=True).dump(users)
@@ -36,10 +38,12 @@ class UserAPI(MethodView):
 
 
 class UserDetailAPI(MethodView):
+    @jwt_required()
     def get(self, id):
         user = User.query.get_or_404(id)
         return UserSchema().dump(user), 200
     
+    @jwt_required()
     def put(self, id):
         user = User.query.get_or_404(id)
         try: 
@@ -50,7 +54,8 @@ class UserDetailAPI(MethodView):
             return UserSchema().dump(user), 200
         except ValidationError as err:
             return {"Error": err.messages}
-
+        
+    @jwt_required()
     def patch(self, id):
         user = User.query.get_or_404(id)
         try: 
@@ -64,6 +69,8 @@ class UserDetailAPI(MethodView):
         except ValidationError as err:
             return {"Error": err.messages}, 400
         
+    @jwt_required()
+    @role_required("admin")
     def delete(self, id):
         user = User.query.get_or_404(id)
         try:
@@ -79,16 +86,21 @@ class UserRegisterAPI(MethodView):
         try:
             data = RegisterSchema().load(request.json)
         except ValidationError as err:
-            return {"Error": err}, 400
+            return {"Error": err.messages}, 400
         
         if User.query.filter_by(email=data['email']).first():
             return {"Error": "Email en uso"}, 400
         
-        new_user = User(name=data["name"], email=data['email'])
+        role = data.get('role', 'user')
+
+        new_user = User(
+            name=data["name"],
+            email=data['email']
+            )
         db.session.add(new_user)
         db.session.flush()
+
         password_hash = bcrypt.hash(data['password'])
-        role = data.get('role', 'user')
 
         credenciales = UserCredentials(
             user_id=new_user.id,
@@ -100,24 +112,36 @@ class UserRegisterAPI(MethodView):
         return UserSchema().dump(new_user), 201
 
 
+# --------- AUTH LOGIN
 class AuthLoginAPI(MethodView):
     def post(self):
         try:
             data = LoginSchema().load(request.json)
         except ValidationError as err:
             return {"errors": err.messages}, 400
+        
         user = User.query.filter_by(email=data["email"]).first()
+
         if not user or not user.credential:
             return {"errors": {"credentials": ["Inválidas"]}}, 401
+        
         if not bcrypt.verify(data["password"], user.credential.password_hash):
             return {"errors": {"credentials": ["Inválidas"]}}, 401
-        identity = {
-            "id": user.id,
+        
+        identity = str(user.id)
+        additional_claims = {
             "email": user.email,
-            "role": user.credential.role,
+            "role": user.credential.role
         }
-        access_token = create_access_token(identity=identity)
-        refresh_token = create_refresh_token(identity=identity)
+
+        access_token = create_access_token(
+            identity=identity,
+            additional_claims=additional_claims
+            )
+        refresh_token = create_refresh_token(
+            identity=identity,
+            additional_claims=additional_claims
+            )
         
         return {
             "access_token": access_token,
@@ -125,10 +149,11 @@ class AuthLoginAPI(MethodView):
             }, 200
 
 
+#------------- POSTS
 class PostAPI(MethodView):
     @jwt_required()
     def get(self):
-        posts = Post.query.all()
+        posts = Post.query.filter_by(is_active=True).all()
         return [{
             "id": post.id,
             "title": post.title,
@@ -140,40 +165,64 @@ class PostAPI(MethodView):
     @jwt_required()
     def post(self):
         data = request.json
-        user_id = get_jwt_identity()["id"]
+        if not data.get("title") or not data.get("content"):
+            return {"error": "title y content son obligatorios"}, 400
+        identity = get_jwt_identity()
+        claims = get_jwt()
+        user_id = int(identity)
+        role = claims["role"]
 
         new_post = Post(
             title=data.get("title"),
             content=data.get("content"),
             user_id=user_id
         )
-
-        db.session.add(new_post)
-        db.session.commit()
+        try:
+            db.session.add(new_post)
+            db.session.commit()
+        except: 
+            db.session.rollback()
         return {"message": "Post creado", "id": new_post.id}, 201
 
 class PostDetailAPI(MethodView):
     @jwt_required()
-    @role_required("admin", "moderator")
     def delete(self, id):
         post = Post.query.get_or_404(id)
-        db.session.delete(post)
+        identity = get_jwt_identity()
+        claims = get_jwt()
+        user_id = int(identity)
+        role = claims["role"]
+
+        if role != "admin" and post.user_id != user_id:
+            return {"error": "No autorizado para modificar este post"}, 403
+
+        post.is_active = False #eliminado logico
         db.session.commit()
         return {"message": "Post eliminado"}, 200
 
     @jwt_required()
-    @role_required("admin", "moderator")
     def put(self, id):
         post = Post.query.get_or_404(id)
+        identity = get_jwt_identity()
+        claims = get_jwt()
+        user_id = int(identity)
+        role = claims["role"]
+
+        if role != "admin" and post.user_id != user_id:
+            return {"error": "No autorizado para modificar este post"}, 403
+
         data = request.json
         post.title = data.get("title", post.title)
         post.content = data.get("content", post.content)
         db.session.commit()
         return {"message": "Post actualizado"}, 200
     
+
+# ------------ REFRESH TOKEN
 class TokenRefreshAPI(MethodView):
     @jwt_required(refresh=True)  # solo con refresh token
     def post(self):
         identity = get_jwt_identity()
-        new_access_token = create_access_token(identity=identity)
+        claims = get_jwt()
+        new_access_token = create_access_token(identity=identity, additional_claims=claims)
         return {"access_token": new_access_token}, 200
