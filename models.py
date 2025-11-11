@@ -6,7 +6,7 @@ db = SQLAlchemy()
 # relacion Post-Generos
 post_genre = db.Table(
     'post_genre',
-    db.Column('post_id', db.Integer, db.ForeignKey('post.id'), primary_key=True),
+    db.Column('post_id', db.Integer, db.ForeignKey('posts.id'), primary_key=True),
     db.Column('genre_id', db.Integer, db.ForeignKey('genres.id'), primary_key=True)
 )
 
@@ -29,33 +29,34 @@ class User(db.Model):
         db.Boolean,
         nullable=False,
         server_default=db.text("1")
-        )
+        ) 
     
     role = db.Column(db.String(50), default='user')
-    
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.now()) 
     credential = db.relationship("UserCredentials", back_populates="user", uselist=False)
     
     # un usuario tien muchos posts
-    posts = db.relationship('Post', backref='author', lazy=True)
+    posts = db.relationship('Post', back_populates='author', lazy=True)
     # relacion con el comentario que escribe un user
-    comments = db.relationship('Comment', backref='author', lazy=True)
+    comments = db.relationship('Comment', back_populates='author', lazy=True)
 
 class Post(db.Model):
+    __tablename__ = "posts"
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.now())
-
+    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())  # NUEVO
     is_active = db.Column(
         db.Boolean,
         nullable=False,
         server_default=db.text("1")
-        )
-    
+        )#igual a is_published
     #autor del post
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    author = db.relationship('User', back_populates='posts')
     #comentarios del post
-    comments = db.relationship('Comment', backref='post', lazy=True)
+    comments = db.relationship('Comment', back_populates='post', lazy=True)
     genres = db.relationship("Genre", secondary=post_genre, backref="posts")
     
 class Comment(db.Model):
@@ -65,7 +66,12 @@ class Comment(db.Model):
     #usuario que comenta 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     #donde comenta
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    # Eliminado logico
+    is_visible = db.Column(db.Boolean, default=True, nullable=False)
+
+    author = db.relationship('User', back_populates='comments')
+    post = db.relationship('Post', back_populates='comments')
 
 class Movie(db.Model):
     __tablename__ = "movies"

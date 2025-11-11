@@ -1,7 +1,5 @@
-
 from marshmallow import Schema, fields
 
-from models import User, Review
 
 class ReviewSchema(Schema):
     id = fields.Int(dump_only=True)
@@ -16,6 +14,7 @@ class UserSchema(Schema):
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True)
     email = fields.Email(required=True)
+    
     reviews = fields.List(
         fields.Nested(
             "ReviewSchema", 
@@ -48,6 +47,7 @@ class CommentSchema(Schema):
     id = fields.Int(dump_only=True)
     content = fields.Str(required=True)
     created_at = fields.DateTime(dump_only=True)
+    is_visible = fields.Bool(dump_only=True)
     author = fields.Nested(lambda: UserSchema(only=('id', 'name')))
     post = fields.Nested(lambda: PostSchema(only=('id', 'title')))
 

@@ -10,11 +10,11 @@ from flask_jwt_extended import (
 from datetime import timedelta
 
 
-from schemas import ReviewSchema
+from schemas import ReviewSchema, CommentSchema
 
 from models import db, Movie, Review
 
-from views import UserAPI, UserDetailAPI, UserRegisterAPI, AuthLoginAPI, PostAPI, PostDetailAPI
+from views import UserAPI, UserDetailAPI, UserRegisterAPI, AuthLoginAPI, PostAPI, PostDetailAPI, CommentAPI, CommentDetailAPI
 
 
 from flask_cors import CORS
@@ -24,9 +24,9 @@ from flask_cors import CORS
 app = Flask(__name__)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://BD2021:BD2021itec@143.198.156.171:3306/movies_pp1'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://BD2021:BD2021itec@143.198.156.171:3306/miniblog_efi_ev'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = '1234'
+app.config['JWT_SECRET_KEY'] = 'SuerteProfe!'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)
 
@@ -72,36 +72,17 @@ app.add_url_rule(
     view_func=PostDetailAPI.as_view('post_detail_api'),
     methods=['PUT','DELETE']
     )
+app.add_url_rule(
+    '/posts/<int:post_id>/comments',
+    view_func=CommentAPI.as_view('comments_api'),
+    methods=['GET', 'POST']
+)
+app.add_url_rule(
+    '/comments/<int:comment_id>',
+    view_func=CommentDetailAPI.as_view('comment_detail_api'),
+    methods=['DELETE']
+)
 
-@app.route("/debug-token")
-@jwt_required()
-def debug_token():
-    return {
-        "identity": get_jwt_identity(),
-        "claims": get_jwt()
-    }
-
-
-@app.route('/reviews')
-def reviews():
-    reviews = Review.query.all()
-    return ReviewSchema(many=True).dump(reviews)
-
-@app.route('/reviews/<int:id>', methods=['GET'])
-def review(id):
-    review = Review.query.get_or_404(id)
-    return ReviewSchema().dump(review)
-
-@app.route('/movies')
-def movies():
-    movies = Movie.query.all()
-    return [
-        {
-            "title": movie.title,
-            "year": movie.year,
-            "genres": [genre.name for genre in movie.genres]
-        } for movie in movies
-    ]
 
 if __name__ == '__main__':
     app.run(debug=True)

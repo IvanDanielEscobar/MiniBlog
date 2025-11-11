@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, Flask, jsonify
 from marshmallow import ValidationError
 from flask.views import MethodView
 from flask_jwt_extended import (
@@ -12,7 +12,7 @@ from passlib.hash import bcrypt
 from decorators import role_required
 
 from models import User, UserCredentials, Post, db
-from schemas import UserSchema, RegisterSchema, LoginSchema
+from schemas import UserSchema, RegisterSchema, LoginSchema, CommentSchema, PostSchema
 
 
 # ------- USERS
@@ -154,13 +154,25 @@ class PostAPI(MethodView):
     @jwt_required()
     def get(self):
         posts = Post.query.filter_by(is_active=True).all()
-        return [{
-            "id": post.id,
-            "title": post.title,
-            "content": post.content,
-            "author": post.author.name,
-            "genres": [g.name for g in post.genres]
-        } for post in posts], 200
+        result = []
+        for post in posts:
+            result.append({
+                "id": post.id,
+                "title": post.title,
+                "content": post.content,
+                "author": post.author.name,
+                "genres": [g.name for g in post.genres],
+                "comments": [
+                    {
+                        "id": c.id,
+                        "content": c.content,
+                        "author": c.author.name,
+                        "created_at": c.created_at
+                    } for c in post.comments if c.is_visible
+                ]
+            })
+        return jsonify(result)
+                    
 
     @jwt_required()
     def post(self):
@@ -217,6 +229,62 @@ class PostDetailAPI(MethodView):
         db.session.commit()
         return {"message": "Post actualizado"}, 200
     
+class CommentAPI(MethodView):
+    @jwt_required(optional=True)
+    def get(self, post_id):
+        # listar comentarios visibles de un post
+        post = Post.query.get_or_404(post_id)
+        return jsonify([
+            {
+                "id": c.id,
+                "content": c.content,
+                "author": c.author.name,
+                "created_at": c.created_at
+            } for c in post.comments if c.is_visible
+        ])
+
+    @jwt_required()
+    def post(self, post_id):
+        data = request.json
+        user_id = data.get("user_id")
+        content = data.get("content")
+
+        if not all ([user_id, content]):
+            return {"error": "Faltan Datos"}, 400
+        
+        user = User.query.get(user_id)
+        post = Post.query.get(post_id)
+        if not user or not post:
+            return jsonify({"error": "Usuario o post no encontrado"}), 404
+        
+        comment = Comment(content=content, user_id=user_id, post_id=post_id)
+        db.session.add(comment)
+        db.session.commit()
+        
+        return jsonify({
+            "id": comment.id,
+            "content": comment.content,
+            "author": comment.author.name,
+            "post_id": comment.post_id,
+            "created_at": comment.created_at
+        }), 201
+
+
+class CommentDetailAPI(MethodView):
+    @jwt_required()
+    def delete(self, comment_id):
+        comment = Comment.query.get_or_404(comment_id)
+        claims = get_jwt()
+        user_id = int(get_jwt_identity())
+
+        # Solo autor, moderador o admin puede borrar
+        if user_id != comment.user_id and claims["role"] not in ["moderator", "admin"]:
+            return {"error": "No autorizado"}, 403
+
+        # eliminacion logica
+        comment.is_visible = False
+        db.session.commit()
+        return {"message": "Comentario eliminado"}, 200
 
 # ------------ REFRESH TOKEN
 class TokenRefreshAPI(MethodView):
