@@ -11,7 +11,7 @@ from flask_jwt_extended import (
 from passlib.hash import bcrypt
 from decorators import role_required
 
-from models import User, UserCredentials, Post, db
+from models import User, UserCredentials, Post, db, Comment
 from schemas import UserSchema, RegisterSchema, LoginSchema, CommentSchema, PostSchema
 
 
