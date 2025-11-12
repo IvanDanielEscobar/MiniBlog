@@ -8,8 +8,9 @@ def role_required(*roles):
         @wraps(fn)
         def decorator(*args, **kwargs):
             claims = get_jwt()
+            user_role = claims.get("role")
 
-            if "role" not in claims or claims["role"] not in roles:
+            if roles and user_role not in roles:
                 return jsonify({"error": "Permiso denegado"}), 403
             
             return fn(*args, **kwargs)
