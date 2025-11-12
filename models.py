@@ -58,7 +58,8 @@ class Post(db.Model):
     #comentarios del post
     comments = db.relationship('Comment', back_populates='post', lazy=True)
     genres = db.relationship("Genre", secondary=post_genre, backref="posts")
-    
+    Post.categories = db.relationship("Category", secondary=post_category, back_populates="posts")
+
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
@@ -72,6 +73,22 @@ class Comment(db.Model):
 
     author = db.relationship('User', back_populates='comments')
     post = db.relationship('Post', back_populates='comments')
+
+class Category(db.Model):
+    __tablename__ = "categories"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, default=db.func.now())
+    #Un post puede tener varias categorias
+    posts = db.relationship("Post", secondary="post_category", back_populates="categories")
+
+    # Tabla intermedia Post-Category
+post_category = db.Table(
+    'post_category',
+    db.Column('post_id', db.Integer, db.ForeignKey('posts.id'), primary_key=True),
+    db.Column('category_id', db.Integer, db.ForeignKey('categories.id'), primary_key=True)
+)
+
 
 class Movie(db.Model):
     __tablename__ = "movies"

@@ -45,7 +45,7 @@ class PostSchema(Schema):
     author = fields.Nested(lambda: UserSchema(only=("id", "name", "email")))
     comments = fields.List(fields.Nested(lambda: CommentSchema(only=("id","content","author","created_at"))))
     genres = fields.List(fields.Nested(lambda: GenreSchema(only=("id", "name"))))
-
+    categories = fields.List(fields.Nested(lambda: CategorySchema(only=("id", "name"))))
 
 
 class CommentSchema(Schema):
@@ -55,6 +55,11 @@ class CommentSchema(Schema):
     is_visible = fields.Bool(dump_only=True)
     author = fields.Nested(lambda: UserSchema(only=('id', 'name')))
     post = fields.Nested(lambda: PostSchema(only=('id', 'title')))
+
+class CategorySchema(Schema):
+    id = fields.Int(dump_only=True)
+    name = fields.Str(required=True)
+    created_at = fields.DateTime(dump_only=True)
 
 class GenreSchema(Schema):
     id = fields.Int(dump_only=True)

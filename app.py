@@ -82,6 +82,16 @@ app.add_url_rule(
     view_func=CommentDetailAPI.as_view('comment_detail_api'),
     methods=['DELETE']
 )
+app.add_url_rule(
+    '/categories',
+    view_func=CategoryAPI.as_view('category_api'),
+    methods=['GET','POST']
+    )
+app.add_url_rule(
+    '/categories/<int:id>',
+    view_func=CategoryDetailAPI.as_view('category_detail_api'),
+    methods=['PUT','DELETE']
+    )
 
 
 if __name__ == '__main__':

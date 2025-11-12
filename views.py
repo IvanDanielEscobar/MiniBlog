@@ -18,11 +18,12 @@ from schemas import UserSchema, RegisterSchema, LoginSchema, CommentSchema, Post
 # ------- USERS
 class UserAPI(MethodView):
     @jwt_required()
-    @role_required("admin")
+    @role_required()
     def get(self):
         users = User.query.all()
         return UserSchema(many=True).dump(users)
 
+    @role_required("admin")
     def post(self):
         try:
             data = UserSchema().load(request.json)
@@ -152,6 +153,7 @@ class AuthLoginAPI(MethodView):
 #------------- POSTS
 class PostAPI(MethodView):
     @jwt_required()
+    @role_required()
     def get(self):
         posts = Post.query.filter_by(is_active=True).all()
         result = []
@@ -175,6 +177,7 @@ class PostAPI(MethodView):
                     
 
     @jwt_required()
+    @role_required()
     def post(self):
         data = request.json
         if not data.get("title") or not data.get("content"):
@@ -231,6 +234,7 @@ class PostDetailAPI(MethodView):
     
 class CommentAPI(MethodView):
     @jwt_required(optional=True)
+    @role_required()
     def get(self, post_id):
         # listar comentarios visibles de un post
         post = Post.query.get_or_404(post_id)
@@ -244,6 +248,7 @@ class CommentAPI(MethodView):
         ])
 
     @jwt_required()
+    @role_required()
     def post(self, post_id):
         data = request.json
         user_id = data.get("user_id")
@@ -285,6 +290,36 @@ class CommentDetailAPI(MethodView):
         comment.is_visible = False
         db.session.commit()
         return {"message": "Comentario eliminado"}, 200
+
+class CategoryAPI(MethodView):
+    def get(self):
+        categories = Category.query.all()
+        return CategorySchema(many=True).dump(categories)
+
+    def post(self):
+        data = request.json
+        name = data.get("name")
+        if not name: 
+            return {"error": "Nombre olbigarotio"}, 400
+        
+        category = Category(name=name)
+        db.session.add(categories)
+        db.session.commit()
+        return CategorySchema().dump(categories)
+
+class CategoryDetailAPI(MethodView):
+    def put(self, id):
+        category = Category.query.get_or_404(id)
+        data = request.json
+        category.name = data.get("name", category.name)
+        db.session.commit()
+        return CategorySchema().dump(category), 200
+    def delete(self, id):
+        category = Category.query.get_or_404(id)
+        db.session.delete(category)
+        db.session.commit()
+        return {"message": "Categoría eliminada"}, 200
+
 
 # ------------ REFRESH TOKEN
 class TokenRefreshAPI(MethodView):
