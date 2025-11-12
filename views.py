@@ -11,8 +11,8 @@ from flask_jwt_extended import (
 from passlib.hash import bcrypt
 from decorators import role_required
 
-from models import User, UserCredentials, Post, db, Comment
-from schemas import UserSchema, RegisterSchema, LoginSchema, CommentSchema, PostSchema
+from models import User, UserCredentials, Post, db, Comment, Category
+from schemas import UserSchema, RegisterSchema, LoginSchema, CommentSchema, PostSchema, CategorySchema
 
 
 # ------- USERS
@@ -303,9 +303,9 @@ class CategoryAPI(MethodView):
             return {"error": "Nombre olbigarotio"}, 400
         
         category = Category(name=name)
-        db.session.add(categories)
+        db.session.add(category)
         db.session.commit()
-        return CategorySchema().dump(categories)
+        return CategorySchema().dump(category)
 
 class CategoryDetailAPI(MethodView):
     def put(self, id):

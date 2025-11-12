@@ -14,7 +14,7 @@ from schemas import ReviewSchema, CommentSchema
 
 from models import db, Movie, Review
 
-from views import UserAPI, UserDetailAPI, UserRegisterAPI, AuthLoginAPI, PostAPI, PostDetailAPI, CommentAPI, CommentDetailAPI
+from views import UserAPI, UserDetailAPI, UserRegisterAPI, AuthLoginAPI, PostAPI, PostDetailAPI, CommentAPI, CommentDetailAPI, CategoryAPI, CategoryDetailAPI
 
 
 from flask_cors import CORS

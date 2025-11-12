@@ -16,6 +16,13 @@ movie_genre = db.Table(
     db.Column('movie_id', db.Integer, db.ForeignKey('movies.id'), primary_key=True),
     db.Column('genre_id', db.Integer, db.ForeignKey('genres.id'), primary_key=True)
 )
+# Tabla intermedia Post-Category
+post_category = db.Table(
+    'post_category',
+    db.Column('post_id', db.Integer, db.ForeignKey('posts.id'), primary_key=True),
+    db.Column('category_id', db.Integer, db.ForeignKey('categories.id'), primary_key=True)
+)
+
 
 
 
@@ -58,7 +65,7 @@ class Post(db.Model):
     #comentarios del post
     comments = db.relationship('Comment', back_populates='post', lazy=True)
     genres = db.relationship("Genre", secondary=post_genre, backref="posts")
-    Post.categories = db.relationship("Category", secondary=post_category, back_populates="posts")
+    categories = db.relationship("Category", secondary="post_category", back_populates="posts")
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -82,12 +89,6 @@ class Category(db.Model):
     #Un post puede tener varias categorias
     posts = db.relationship("Post", secondary="post_category", back_populates="categories")
 
-    # Tabla intermedia Post-Category
-post_category = db.Table(
-    'post_category',
-    db.Column('post_id', db.Integer, db.ForeignKey('posts.id'), primary_key=True),
-    db.Column('category_id', db.Integer, db.ForeignKey('categories.id'), primary_key=True)
-)
 
 
 class Movie(db.Model):
