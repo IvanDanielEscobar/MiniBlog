@@ -91,7 +91,7 @@ app.add_url_rule(
 app.add_url_rule(
     '/comments/<int:comment_id>',
     view_func=CommentDetailAPI.as_view('comment_detail_api'),
-    methods=['DELETE']
+    methods=['PUT','DELETE']
 )
 app.add_url_rule(
     '/categories',

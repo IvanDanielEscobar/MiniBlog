@@ -165,11 +165,14 @@ class PostAPI(MethodView):
                 "title": post.title,
                 "content": post.content,
                 "author": post.author.name,
+                "user_id": post.user_id, 
                 "genres": [g.name for g in post.genres],
+                "created_at": post.created_at,
                 "comments": [
                     {
                         "id": c.id,
                         "content": c.content,
+                        "user_id": post.user_id, 
                         "author": c.author.name,
                         "created_at": c.created_at
                     } for c in post.comments if c.is_visible
@@ -245,10 +248,13 @@ class CommentAPI(MethodView):
                 "id": c.id,
                 "content": c.content,
                 "author": c.author.name,
+                "user_id": c.user_id,  
                 "created_at": c.created_at
             } for c in post.comments if c.is_visible
         ])
-
+    
+    
+    
     @jwt_required()
     @role_required()
     def post(self, post_id):
@@ -256,9 +262,10 @@ class CommentAPI(MethodView):
         user_id = data.get("user_id")
         content = data.get("content")
 
-        if not all ([user_id, content]):
-            return {"error": "Faltan Datos"}, 400
+        if not content:
+            return {"error": "Falta Contenido"}, 400
         
+        user_id = int(get_jwt_identity())
         user = User.query.get(user_id)
         post = Post.query.get(post_id)
         if not user or not post:
@@ -292,6 +299,32 @@ class CommentDetailAPI(MethodView):
         comment.is_visible = False
         db.session.commit()
         return {"message": "Comentario eliminado"}, 200
+    @jwt_required()
+    @role_required()
+    def put(self, comment_id):
+        comment = Comment.query.get_or_404(comment_id)
+        user_id = int(get_jwt_identity())
+        claims = get_jwt()
+
+        # solo el autor puede editar
+        if comment.user_id != user_id:
+            return {"error": "No autorizado"}, 403
+
+        data = request.get_json()
+        content = data.get("content", "").strip()
+        if not content:
+            return {"error": "Contenido vacío"}, 400
+
+        comment.content = content
+        db.session.commit()
+
+        return jsonify({
+            "id": comment.id,
+            "content": comment.content,
+            "author": comment.author.name,
+            "user_id": comment.user_id,
+            "created_at": comment.created_at
+        }), 200
 
 class CategoryAPI(MethodView):
     def get(self):
