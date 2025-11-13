@@ -131,6 +131,8 @@ class AuthLoginAPI(MethodView):
         
         identity = str(user.id)
         additional_claims = {
+            "id": user.id,
+            "name": user.name,
             "email": user.email,
             "role": user.credential.role
         }
@@ -155,7 +157,7 @@ class PostAPI(MethodView):
     @jwt_required()
     @role_required()
     def get(self):
-        posts = Post.query.filter_by(is_active=True).all()
+        posts = Post.query.filter_by(is_active=True).order_by(Post.id.desc()).all()
         result = []
         for post in posts:
             result.append({
