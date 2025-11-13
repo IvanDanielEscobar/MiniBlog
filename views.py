@@ -167,7 +167,8 @@ class PostAPI(MethodView):
                 "author": post.author.name,
                 "user_id": post.user_id, 
                 "genres": [g.name for g in post.genres],
-                "created_at": post.created_at,
+                "created_at": post.created_at.isoformat() if post.created_at else None,
+                "updated_at": post.updated_at.isoformat() if post.updated_at else None,
                 "comments": [
                     {
                         "id": c.id,
@@ -202,7 +203,18 @@ class PostAPI(MethodView):
             db.session.commit()
         except: 
             db.session.rollback()
-        return {"message": "Post creado", "id": new_post.id}, 201
+        
+        result = {
+            "id": new_post.id,
+            "title": new_post.title,
+            "content": new_post.content,
+            "author": new_post.author.name,
+            "user_id": new_post.user_id,
+            "created_at": new_post.created_at.isoformat() if new_post.created_at else None,
+            "updated_at": new_post.updated_at.isoformat() if new_post.updated_at else None,
+            "comments": []
+        }
+        return result, 201
 
 class PostDetailAPI(MethodView):
     @jwt_required()
