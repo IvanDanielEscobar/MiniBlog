@@ -12,11 +12,13 @@ from passlib.hash import bcrypt
 from decorators import role_required
 
 from services.user_service import UserService, AuthService
+from services.post_service import PostService
 
 from models import User, UserCredentials, Post, db, Comment, Category
 from schemas import UserSchema, RegisterSchema, LoginSchema, CommentSchema, PostSchema, CategorySchema
 
 user_service = UserService()
+post_service = PostService()
 
 # ------- USERS
 class UserAPI(MethodView):
@@ -140,29 +142,8 @@ class PostAPI(MethodView):
     @jwt_required()
     @role_required()
     def get(self):
-        posts = Post.query.filter_by(is_active=True).order_by(Post.id.desc()).all()
-        result = []
-        for post in posts:
-            result.append({
-                "id": post.id,
-                "title": post.title,
-                "content": post.content,
-                "author": post.author.name,
-                "user_id": post.user_id, 
-                "genres": [g.name for g in post.genres],
-                "created_at": post.created_at.isoformat() if post.created_at else None,
-                "updated_at": post.updated_at.isoformat() if post.updated_at else None,
-                "comments": [
-                    {
-                        "id": c.id,
-                        "content": c.content,
-                        "user_id": post.user_id, 
-                        "author": c.author.name,
-                        "created_at": c.created_at
-                    } for c in post.comments if c.is_visible
-                ]
-            })
-        return jsonify(result)
+        result = post_service.list_posts()
+        return jsonify(result), 200
                     
 
     @jwt_required()
@@ -171,65 +152,37 @@ class PostAPI(MethodView):
         data = request.json
         if not data.get("title") or not data.get("content"):
             return {"error": "title y content son obligatorios"}, 400
-        identity = get_jwt_identity()
-        claims = get_jwt()
-        user_id = int(identity)
-        role = claims["role"]
-
-        new_post = Post(
-            title=data.get("title"),
-            content=data.get("content"),
-            user_id=user_id
-        )
-        try:
-            db.session.add(new_post)
-            db.session.commit()
-        except: 
-            db.session.rollback()
         
-        result = {
-            "id": new_post.id,
-            "title": new_post.title,
-            "content": new_post.content,
-            "author": new_post.author.name,
-            "user_id": new_post.user_id,
-            "created_at": new_post.created_at.isoformat() if new_post.created_at else None,
-            "updated_at": new_post.updated_at.isoformat() if new_post.updated_at else None,
-            "comments": []
-        }
+        user_id = int(get_jwt_identity())
+
+        result = post_service.create_post(data, user_id)
         return result, 201
 
 class PostDetailAPI(MethodView):
     @jwt_required()
     def delete(self, id):
-        post = Post.query.get_or_404(id)
-        identity = get_jwt_identity()
-        claims = get_jwt()
-        user_id = int(identity)
-        role = claims["role"]
+        post = post_service.repo.get_by_id(id)
+
+        user_id = int(get_jwt_identity())
+        role = get_jwt()["role"]
 
         if role != "admin" and post.user_id != user_id:
             return {"error": "No autorizado para modificar este post"}, 403
 
-        post.is_active = False #eliminado logico
-        db.session.commit()
+        post_service.delete_post(post)
         return {"message": "Post eliminado"}, 200
 
     @jwt_required()
     def put(self, id):
-        post = Post.query.get_or_404(id)
-        identity = get_jwt_identity()
-        claims = get_jwt()
-        user_id = int(identity)
-        role = claims["role"]
+        post = post_service.repo.get_by_id(id)
+        user_id = int(get_jwt_identity())
+        role = get_jwt()["role"]
 
         if role != "admin" and post.user_id != user_id:
             return {"error": "No autorizado para modificar este post"}, 403
 
         data = request.json
-        post.title = data.get("title", post.title)
-        post.content = data.get("content", post.content)
-        db.session.commit()
+        post_service.update_post(post, data)
         return {"message": "Post actualizado"}, 200
     
 class CommentAPI(MethodView):
