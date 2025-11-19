@@ -13,12 +13,17 @@ from decorators import role_required
 
 from services.user_service import UserService, AuthService
 from services.post_service import PostService
+from services.comment_service import CommentService
+from services.category_service import CategoryService
 
 from models import User, UserCredentials, Post, db, Comment, Category
 from schemas import UserSchema, RegisterSchema, LoginSchema, CommentSchema, PostSchema, CategorySchema
 
+
 user_service = UserService()
 post_service = PostService()
+comment_service = CommentService()
+category_service = CategoryService()
 
 # ------- USERS
 class UserAPI(MethodView):
@@ -186,71 +191,49 @@ class PostDetailAPI(MethodView):
         return {"message": "Post actualizado"}, 200
     
 class CommentAPI(MethodView):
+
     @jwt_required(optional=True)
     @role_required()
     def get(self, post_id):
-        # listar comentarios visibles de un post
-        post = Post.query.get_or_404(post_id)
-        return jsonify([
-            {
-                "id": c.id,
-                "content": c.content,
-                "author": c.author.name,
-                "user_id": c.user_id,  
-                "created_at": c.created_at
-            } for c in post.comments if c.is_visible
-        ])
-    
-    
+        result = comment_service.list_comments(post_id)
+        return jsonify(result)
     
     @jwt_required()
     @role_required()
     def post(self, post_id):
         data = request.json
-        user_id = data.get("user_id")
         content = data.get("content")
 
         if not content:
             return {"error": "Falta Contenido"}, 400
-        
+
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id)
-        post = Post.query.get(post_id)
-        if not user or not post:
-            return jsonify({"error": "Usuario o post no encontrado"}), 404
         
-        comment = Comment(content=content, user_id=user_id, post_id=post_id)
-        db.session.add(comment)
-        db.session.commit()
-        
-        return jsonify({
-            "id": comment.id,
-            "content": comment.content,
-            "author": comment.author.name,
-            "post_id": comment.post_id,
-            "created_at": comment.created_at
-        }), 201
+        result = comment_service.create_comment(post_id, user_id, content)
+
+        return jsonify(result), 201
 
 
 class CommentDetailAPI(MethodView):
     @jwt_required()
     def delete(self, comment_id):
-        comment = Comment.query.get_or_404(comment_id)
         claims = get_jwt()
         user_id = int(get_jwt_identity())
+
+        comment = comment_service.repo.get_comment_or_404(comment_id)
 
         # Solo autor, moderador o admin puede borrar
         if user_id != comment.user_id and claims["role"] not in ["moderator", "admin"]:
             return {"error": "No autorizado"}, 403
 
         # eliminacion logica
-        comment.is_visible = False
-        db.session.commit()
+        comment_service.delete_comment(comment_id)
         return {"message": "Comentario eliminado"}, 200
+    
     @jwt_required()
     @role_required()
     def put(self, comment_id):
-        comment = Comment.query.get_or_404(comment_id)
+        comment = comment_service.repo.get_comment_or_404(comment_id)
         user_id = int(get_jwt_identity())
         claims = get_jwt()
 
@@ -260,55 +243,52 @@ class CommentDetailAPI(MethodView):
 
         data = request.get_json()
         content = data.get("content", "").strip()
+        
         if not content:
             return {"error": "Contenido vacío"}, 400
 
-        comment.content = content
-        db.session.commit()
+        updated = comment_service.update_comment(comment_id, content)
 
         return jsonify({
-            "id": comment.id,
-            "content": comment.content,
-            "author": comment.author.name,
-            "user_id": comment.user_id,
-            "created_at": comment.created_at
+            "id": updated.id,
+            "content": updated.content,
+            "author": updated.author.name,
+            "user_id": updated.user_id,
+            "created_at": updated.created_at
         }), 200
 
 class CategoryAPI(MethodView):
     def get(self):
-        categories = Category.query.all()
+        categories = category_service.list_categories()
         return CategorySchema(many=True).dump(categories)
 
     def post(self):
         data = request.json
         name = data.get("name")
-        if not name: 
-            return {"error": "Nombre olbigarotio"}, 400
-        
-        category = Category(name=name)
-        db.session.add(category)
-        db.session.commit()
-        return CategorySchema().dump(category)
+
+        try: 
+            new_category = category_service.create_category(name)        
+        except ValueError as err:
+            return {"error": str(err)}, 400
+        return CategorySchema().dump(new_category)
 
 class CategoryDetailAPI(MethodView):
     def put(self, id):
-        category = Category.query.get_or_404(id)
         data = request.json
-        category.name = data.get("name", category.name)
-        db.session.commit()
-        return CategorySchema().dump(category), 200
-    def delete(self, id):
-        category = Category.query.get_or_404(id)
-        db.session.delete(category)
-        db.session.commit()
-        return {"message": "Categoría eliminada"}, 200
-
+        name = data.get("name")
+        
+        try:
+            updated = category_service.update_category(id, name)
+        except ValueError as err:
+            return {"error", str(err)}, 400
+        
+        return CategorySchema().dump(updated), 200
 
 # ------------ REFRESH TOKEN
 class TokenRefreshAPI(MethodView):
     @jwt_required(refresh=True)  # solo con refresh token
     def post(self):
-        identity = get_jwt_identity()
         claims = get_jwt()
-        new_access_token = create_access_token(identity=identity, additional_claims=claims)
-        return {"access_token": new_access_token}, 200
+
+        new_token = AuthService().refresh_token(claims)
+        return {"access_token": new_token}, 200

@@ -109,3 +109,20 @@ class AuthService:
             "refresh_token": refresh_token,
             "user": claims
         }
+    
+    @staticmethod
+
+    def refresh_token(self, claims):
+        identity = claims["sub"]
+
+        new_claims = {
+            "id": claims.get("id"),
+            "name": claims.get("name"),
+            "email": claims.get("email"),
+            "role": claims.get("role")
+        }
+
+        return create_access_token(
+            identity=identity,
+            additional_claims=new_claims
+        )
