@@ -11,9 +11,12 @@ from flask_jwt_extended import (
 from passlib.hash import bcrypt
 from decorators import role_required
 
+from services.user_service import UserService, AuthService
+
 from models import User, UserCredentials, Post, db, Comment, Category
 from schemas import UserSchema, RegisterSchema, LoginSchema, CommentSchema, PostSchema, CategorySchema
 
+user_service = UserService()
 
 # ------- USERS
 class UserAPI(MethodView):
@@ -27,58 +30,58 @@ class UserAPI(MethodView):
     def post(self):
         try:
             data = UserSchema().load(request.json)
-            new_user = User(
-                name=data.get('name'),
-                email=data.get('email')
-            )
-            db.session.add(new_user)
-            db.session.commit()
+            new_user = user_service.create_user(data)
+            return UserSchema().dump(new_user), 201
+        
         except ValidationError as err:
             return {"Errors": f"{err.messages}"}, 400
-        return UserSchema().dump(new_user), 201
+        
+        except ValueError as err:
+            return {"Errors": str(err)}, 400
 
 
 class UserDetailAPI(MethodView):
     @jwt_required()
     def get(self, id):
-        user = User.query.get_or_404(id)
-        return UserSchema().dump(user), 200
+        try:
+            user = user_service.get_user(id)
+            return UserSchema().dump(user), 200
+        except ValueError as err:
+            return {"error": str(err)}, 404
+
     
     @jwt_required()
     def put(self, id):
-        user = User.query.get_or_404(id)
         try: 
             data = UserSchema().load(request.json)
-            user.name = data['name']
-            user.email = data['email']
-            db.session.commit()
-            return UserSchema().dump(user), 200
-        except ValidationError as err:
-            return {"Error": err.messages}
-        
-    @jwt_required()
-    def patch(self, id):
-        user = User.query.get_or_404(id)
-        try: 
-            data = UserSchema(partial=True).load(request.json)
-            if 'name' in data:
-                user.name = data.get('name')
-            if 'email' in data:
-                user.email = data.get('email')
-            db.session.commit()
-            return UserSchema().dump(user), 200
+            updated_user = user_service.update_user(id, data)
+            return UserSchema().dump(updated_user), 200
         except ValidationError as err:
             return {"Error": err.messages}, 400
+        except ValueError as err:
+            return {"error": str(err)}, 400
+        
+
+    @jwt_required()
+    def patch(self, id):
+        try: 
+            data = UserSchema(partial=True).load(request.json)
+            updated_user = user_service.update_user(id, data)
+            return UserSchema().dump(updated_user), 200
+        except ValidationError as err:
+            return {"Error": err.messages}, 400
+        except ValueError as err:
+            return {"error": str(err)}, 400
         
     @jwt_required()
     @role_required("admin")
     def delete(self, id):
-        user = User.query.get_or_404(id)
         try:
-            db.session.delete(user)
-            db.session.commit()
+            user_service.delete_user(id)
             return {"Message": "Deleted User"}, 204
-        except:
+        except ValueError as err:
+            return {"error": str(err)}, 404
+        except Exception:
             return {"Error": "No es posible borrarlo"}, 400
 
 
@@ -121,37 +124,17 @@ class AuthLoginAPI(MethodView):
         except ValidationError as err:
             return {"errors": err.messages}, 400
         
-        user = User.query.filter_by(email=data["email"]).first()
-
-        if not user or not user.credential:
-            return {"errors": {"credentials": ["Inválidas"]}}, 401
-        
-        if not bcrypt.verify(data["password"], user.credential.password_hash):
-            return {"errors": {"credentials": ["Inválidas"]}}, 401
-        
-        identity = str(user.id)
-        additional_claims = {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
-            "role": user.credential.role
-        }
-
-        access_token = create_access_token(
-            identity=identity,
-            additional_claims=additional_claims
+        try:
+            service = AuthService()
+            result = service.login(
+                email=data["email"],
+                password=data["password"]
             )
-        refresh_token = create_refresh_token(
-            identity=identity,
-            additional_claims=additional_claims
-            )
+            return result, 200
+
+        except ValueError as err:
+            return {"errors": {"credentials": [str(err)]}}, 401
         
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token
-            }, 200
-
-
 #------------- POSTS
 class PostAPI(MethodView):
     @jwt_required()
